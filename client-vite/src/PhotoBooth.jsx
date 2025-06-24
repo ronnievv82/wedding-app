@@ -1,101 +1,148 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useEffect, useState, useRef } from "react";
+import confetti from "canvas-confetti";
 
-const PhotoBooth = () => {
+function PhotoBooth() {
+  const [photos, setPhotos] = useState([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [limitReached, setLimitReached] = useState(false);
+  const [cameraFacing, setCameraFacing] = useState("user");
+  const [cameraReady, setCameraReady] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+
   const videoRef = useRef(null);
-  const canvasRef = useRef(null);
-  const [facingMode, setFacingMode] = useState("user"); // 'user' or 'environment'
-  const [capturedPhoto, setCapturedPhoto] = useState(null);
-  const [stream, setStream] = useState(null);
+  const streamRef = useRef(null);
 
   useEffect(() => {
-    startCamera();
-    return () => {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
+    (async () => {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        alert("Camera not supported.");
+        return;
       }
+
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: cameraFacing },
+        });
+
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          setCameraReady(true);
+        }
+      } catch (error) {
+        console.error("Camera error:", error);
+        alert("Failed to access camera.");
+      }
+    })();
+
+    return () => {
+      streamRef.current?.getTracks().forEach(track => track.stop());
     };
-  }, [facingMode]);
+  }, [cameraFacing]);
 
-  const startCamera = async () => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-    }
+  const handleUpload = async () => {
+    if (photos.length >= 20 || isUploading) return;
 
-    try {
-      const newStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode },
+    const canvas = document.createElement("canvas");
+    canvas.width = videoRef.current.videoWidth;
+    canvas.height = videoRef.current.videoHeight;
+    canvas.getContext("2d").drawImage(videoRef.current, 0, 0);
+
+    const photoBlob = await new Promise(resolve =>
+      canvas.toBlob(resolve, "image/jpeg", 0.9)
+    );
+
+    const previewURL = URL.createObjectURL(photoBlob);
+    const updatedPhotos = [...photos, { url: previewURL, blob: photoBlob }];
+    setPhotos(updatedPhotos);
+
+    if (updatedPhotos.length >= 20 && !limitReached) {
+      setLimitReached(true);
+      confetti({
+        particleCount: 200,
+        spread: 90,
+        origin: { y: 0.6 },
       });
-      videoRef.current.srcObject = newStream;
-      setStream(newStream);
-    } catch (err) {
-      console.error("Camera error:", err);
     }
-  };
 
-  const flipCamera = () => {
-    setFacingMode(prev => (prev === "user" ? "environment" : "user"));
-  };
+    const formData = new FormData();
+    formData.append("photo", photoBlob, `photo_${Date.now()}.jpg`);
 
-  const takePhoto = () => {
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
+    const token = new URLSearchParams(window.location.search).get("t");
+    if (token) formData.append("token", token);
 
-    if (video && canvas) {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      setCapturedPhoto(canvas.toDataURL("image/jpeg"));
-    }
-  };
+    setIsUploading(true);
+    await fetch("https://ronnievv.duckdns.org:3001/api/upload", {
+      method: "POST",
+      body: formData,
+    });
+    setIsUploading(false);
 
-  const uploadPhoto = async () => {
-    const blob = await (await fetch(capturedPhoto)).blob();
-    const form = new FormData();
-    form.append("photo", blob, "wedding-photo.jpg");
-
-    try {
-      const res = await fetch("https://ronnievv.duckdns.org:3001/api/upload", {
-        method: "POST",
-        body: form,
-      });
-      const data = await res.json();
-      console.log("✅ Upload success:", data);
-    } catch (err) {
-      console.error("❌ Upload failed:", err);
-    }
+    // Show toast
+    setShowConfirmation(true);
+    setTimeout(() => setShowConfirmation(false), 2000);
   };
 
   return (
-    <div className="flex flex-col items-center gap-4 p-6 bg-gray-900 min-h-screen text-white">
+    <div className="photo-booth text-center py-6">
+      {showConfirmation && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-4 py-2 rounded shadow-lg transition-all duration-500 z-50">
+          📸 Photo uploaded!
+        </div>
+      )}
+
       <video
         ref={videoRef}
         autoPlay
         playsInline
-        className="rounded-lg w-full max-w-sm border-4 border-pink-500"
+        muted
+        className="preview mx-auto rounded shadow-md"
       />
-      <button onClick={flipCamera} className="px-4 py-2 bg-blue-500 rounded hover:bg-blue-600 transition">
-        🔄 Flip Camera
-      </button>
-      <button onClick={takePhoto} className="px-4 py-2 bg-green-500 rounded hover:bg-green-600 transition">
-        📸 Take Photo
-      </button>
 
-      {capturedPhoto && (
-        <>
+      <div className="flex justify-center gap-4 mt-4">
+        <button
+          onClick={() =>
+            setCameraFacing(prev => (prev === "user" ? "environment" : "user"))
+          }
+          className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded"
+        >
+          Flip Camera
+        </button>
+
+        <button
+          onClick={handleUpload}
+          disabled={!cameraReady || isUploading || limitReached}
+          className={`px-4 py-2 rounded transition-all ${
+            isUploading
+              ? "animate-pulse bg-blue-400 cursor-wait"
+              : "bg-blue-600 hover:bg-blue-700"
+          } text-white`}
+        >
+          {isUploading ? "Uploading..." : "Take Photo"}
+        </button>
+      </div>
+
+      <p className="text-sm text-gray-600 mt-2">
+        {20 - photos.length} photo{20 - photos.length !== 1 ? "s" : ""} left
+      </p>
+
+      <div className="gallery mt-4 grid grid-cols-3 gap-2 px-4">
+        {photos.map((p, index) => (
           <img
-            src={capturedPhoto}
-            alt="Captured"
-            className="rounded-lg w-full max-w-xs border-2 border-yellow-400"
+            key={index}
+            src={p.url}
+            alt={`upload-${index}`}
+            className="rounded shadow-sm"
           />
-          <button onClick={uploadPhoto} className="px-4 py-2 bg-purple-600 rounded hover:bg-purple-700 transition">
-            ⬆️ Upload
-          </button>
-        </>
-      )}
-      <canvas ref={canvasRef} className="hidden" />
+        ))}
+      </div>
     </div>
   );
-};
+}
 
 export default PhotoBooth;
