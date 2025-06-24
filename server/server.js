@@ -12,6 +12,14 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+
+
+const path = require("path");
+app.use("/gallery", express.static(path.join(__dirname, "uploads")));
+
+
+
+
 // Replace these with your actual cert paths
 const options = {
   key: fs.readFileSync("../ssl/key.pem"),
