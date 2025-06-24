@@ -4,6 +4,7 @@ import confetti from "canvas-confetti";
 function PhotoBooth() {
   const [photos, setPhotos] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [limitReached, setLimitReached] = useState(false);
   const [cameraFacing, setCameraFacing] = useState("user");
   const [cameraReady, setCameraReady] = useState(false);
@@ -28,7 +29,6 @@ function PhotoBooth() {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: cameraFacing },
         });
-
         streamRef.current = stream;
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
@@ -54,7 +54,7 @@ function PhotoBooth() {
     canvas.getContext("2d").drawImage(videoRef.current, 0, 0);
 
     const photoBlob = await new Promise(resolve =>
-      canvas.toBlob(resolve, "image/jpeg", 0.9)
+      canvas.toBlob(resolve, "image/jpeg", 0.7)
     );
 
     const previewURL = URL.createObjectURL(photoBlob);
@@ -63,11 +63,7 @@ function PhotoBooth() {
 
     if (updatedPhotos.length >= 20 && !limitReached) {
       setLimitReached(true);
-      confetti({
-        particleCount: 200,
-        spread: 90,
-        origin: { y: 0.6 },
-      });
+      confetti({ particleCount: 200, spread: 100, origin: { y: 0.6 } });
     }
 
     const formData = new FormData();
@@ -77,19 +73,34 @@ function PhotoBooth() {
     if (token) formData.append("token", token);
 
     setIsUploading(true);
-    await fetch("https://ronnievv.duckdns.org:3001/api/upload", {
-      method: "POST",
-      body: formData,
-    });
-    setIsUploading(false);
 
-    // Show toast
-    setShowConfirmation(true);
-    setTimeout(() => setShowConfirmation(false), 2000);
+    const xhr = new XMLHttpRequest();
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        const percent = Math.round((event.loaded / event.total) * 100);
+        setUploadProgress(percent);
+      }
+    };
+
+    xhr.onload = () => {
+      setIsUploading(false);
+      setUploadProgress(0);
+      setShowConfirmation(true);
+      setTimeout(() => setShowConfirmation(false), 2000);
+    };
+
+    xhr.onerror = () => {
+      console.error("Upload failed");
+      setIsUploading(false);
+      setUploadProgress(0);
+    };
+
+    xhr.open("POST", "https://ronnievv.duckdns.org:3001/api/upload");
+    xhr.send(formData);
   };
 
   return (
-    <div className="photo-booth text-center py-6">
+    <div className="photo-booth text-center py-6 px-4">
       {showConfirmation && (
         <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-4 py-2 rounded shadow-lg transition-all duration-500 z-50">
           📸 Photo uploaded!
@@ -104,7 +115,7 @@ function PhotoBooth() {
         className="preview mx-auto rounded shadow-md"
       />
 
-      <div className="flex justify-center gap-4 mt-4">
+      <div className="flex justify-center gap-4 mt-4 flex-wrap">
         <button
           onClick={() =>
             setCameraFacing(prev => (prev === "user" ? "environment" : "user"))
@@ -127,11 +138,20 @@ function PhotoBooth() {
         </button>
       </div>
 
+      {isUploading && (
+        <div className="w-full max-w-sm mx-auto mt-2 bg-gray-200 h-2 rounded overflow-hidden">
+          <div
+            className="bg-blue-500 h-full transition-all"
+            style={{ width: `${uploadProgress}%` }}
+          ></div>
+        </div>
+      )}
+
       <p className="text-sm text-gray-600 mt-2">
         {20 - photos.length} photo{20 - photos.length !== 1 ? "s" : ""} left
       </p>
 
-      <div className="gallery mt-4 grid grid-cols-3 gap-2 px-4">
+      <div className="gallery mt-4 grid grid-cols-3 gap-2">
         {photos.map((p, index) => (
           <img
             key={index}
