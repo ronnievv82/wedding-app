@@ -14,8 +14,8 @@ app.use(express.urlencoded({ extended: true }));
 
 // Replace these with your actual cert paths
 const options = {
-  key: fs.readFileSync("/ssl/cert.pem"),
-  cert: fs.readFileSync("/ssl/key.pem"),
+  key: fs.readFileSync("../ssl/key.pem"),
+  cert: fs.readFileSync("../ssl/cert.pem"),
 };
 
 // Test route (optional)
@@ -32,3 +32,4 @@ app.post("/api/upload", upload.single("photo"), (req, res) => {
 // Launch server
 https.createServer(options, app).listen(3001, () => {
   console.log("� HTTPS server running at https://ronnievv.duckdns.org:3001");
+});
