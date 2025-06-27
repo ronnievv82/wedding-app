@@ -1,22 +1,20 @@
 const express = require("express");
 const multer = require("multer");
 const path = require("path");
-const cors = require("cors");
 const fs = require("fs");
+const cors = require("cors");
 
 const app = express();
 const PORT = 3001;
 
-// Middleware
-app.use(cors({
-  origin: "https://ronnievv.netlify.app"
-}));
+// 🔓 Enable CORS for all origins
+app.use(cors());
 app.use(express.json());
 
-// Serve static photos from the uploads folder
+// 📂 Serve static files from /uploads via /gallery route
 app.use("/gallery", express.static(path.join(__dirname, "uploads")));
 
-// Multer config with filename
+// 📷 Configure multer to save as .jpg files
 const storage = multer.diskStorage({
   destination: "uploads/",
   filename: (req, file, cb) => {
@@ -26,30 +24,30 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// Photo upload endpoint
+// 📤 Photo upload route
 app.post("/api/upload", upload.single("photo"), (req, res) => {
   if (!req.file) {
     console.error("No file received");
-    return res.status(400).send("No file uploaded");
+    return res.status(400).send("No photo uploaded");
   }
-  console.log("📸 Saved:", req.file.filename);
+  console.log("✅ Uploaded:", req.file.filename);
   res.sendStatus(200);
 });
 
-// API route to list uploaded photos
+// 🖼️ Gallery route: return list of .jpg files
 app.get("/api/gallery", (req, res) => {
-  const dir = path.join(__dirname, "uploads");
-  fs.readdir(dir, (err, files) => {
+  const folder = path.join(__dirname, "uploads");
+  fs.readdir(folder, (err, files) => {
     if (err) {
-      console.error("Error reading uploads:", err);
+      console.error("Error reading uploads folder:", err);
       return res.status(500).send("Unable to load gallery");
     }
-    const jpgs = files.filter(name => name.endsWith(".jpg"));
-    res.json(jpgs.sort().reverse()); // Newest first
+    const jpgs = files.filter(f => f.endsWith(".jpg"));
+    res.json(jpgs.sort().reverse()); // newest first
   });
 });
 
-// Start server
+// 🚀 Start the server
 app.listen(PORT, () => {
-  console.log(`🚀 Server is running on port ${PORT}`);
+  console.log(`📡 Server is running on port ${PORT}`);
 });

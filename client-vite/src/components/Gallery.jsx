@@ -6,7 +6,7 @@ function Gallery() {
   // Fetch photos from the server
   const fetchPhotos = async () => {
     try {
-      const res = await fetch("https://viecreatives.com/api/gallery");
+      const res = await fetch("https://gallery.viecreatives.com/api/gallery");
       const files = await res.json();
       setPhotoList(files);
     } catch (error) {
