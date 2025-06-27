@@ -1,170 +1,185 @@
-import React, { useEffect, useState, useRef } from "react";
-import confetti from "canvas-confetti";
+import React, { useEffect, useRef, useState } from "react";
 
 function PhotoBooth() {
-  const [photos, setPhotos] = useState([]);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [limitReached, setLimitReached] = useState(false);
-  const [cameraFacing, setCameraFacing] = useState("user");
-  const [cameraReady, setCameraReady] = useState(false);
-  const [showConfirmation, setShowConfirmation] = useState(false);
-
   const videoRef = useRef(null);
-  const streamRef = useRef(null);
+  const canvasRef = useRef(null);
 
+  const [hasUploaded, setHasUploaded] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(() => {
+    return !sessionStorage.getItem("welcomeShown");
+  });
+
+  const [status, setStatus] = useState("");
+  const [previewMode, setPreviewMode] = useState(false);
+  const [capturedBlob, setCapturedBlob] = useState(null);
+  const [previewProgress, setPreviewProgress] = useState(false);
+
+  // Show welcome message once per session
   useEffect(() => {
-    (async () => {
-      if (!navigator.mediaDevices?.getUserMedia) {
-        alert("Camera not supported.");
-        return;
-      }
+    if (showWelcome) {
+      const timer = setTimeout(() => {
+        sessionStorage.setItem("welcomeShown", "true");
+        setShowWelcome(false);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [showWelcome]);
 
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-        streamRef.current = null;
-      }
+  // Initialize camera and session upload state
+  useEffect(() => {
+    const uploaded = sessionStorage.getItem("hasUploaded");
+    if (uploaded === "true") setHasUploaded(true);
 
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: cameraFacing },
-        });
-        streamRef.current = stream;
+    navigator.mediaDevices
+      .getUserMedia({ video: true })
+      .then((stream) => {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          setCameraReady(true);
         }
-      } catch (error) {
-        console.error("Camera error:", error);
-        alert("Failed to access camera.");
-      }
-    })();
+      })
+      .catch((err) => {
+        console.error("Camera access error:", err);
+        setStatus("Unable to access camera");
+      });
+  }, []);
 
-    return () => {
-      streamRef.current?.getTracks().forEach(track => track.stop());
-    };
-  }, [cameraFacing]);
+  // Auto-cancel preview after 15 seconds
+  useEffect(() => {
+    if (previewMode && capturedBlob) {
+      setPreviewProgress(true);
+      const timeout = setTimeout(() => {
+        setPreviewMode(false);
+        setCapturedBlob(null);
+        setPreviewProgress(false);
+        setStatus("Preview timed out — try again!");
+      }, 15000);
 
-  const handleUpload = async () => {
-    if (photos.length >= 20 || isUploading) return;
-
-    const canvas = document.createElement("canvas");
-    canvas.width = videoRef.current.videoWidth;
-    canvas.height = videoRef.current.videoHeight;
-    canvas.getContext("2d").drawImage(videoRef.current, 0, 0);
-
-    const photoBlob = await new Promise(resolve =>
-      canvas.toBlob(resolve, "image/jpeg", 0.7)
-    );
-
-    const previewURL = URL.createObjectURL(photoBlob);
-    const updatedPhotos = [...photos, { url: previewURL, blob: photoBlob }];
-    setPhotos(updatedPhotos);
-
-    if (updatedPhotos.length >= 20 && !limitReached) {
-      setLimitReached(true);
-      confetti({ particleCount: 200, spread: 100, origin: { y: 0.6 } });
+      return () => clearTimeout(timeout);
     }
+  }, [previewMode, capturedBlob]);
+
+  const captureAndPreview = () => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas) return;
+
+    const context = canvas.getContext("2d");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    canvas.toBlob((blob) => {
+      setCapturedBlob(blob);
+      setPreviewMode(true);
+      setPreviewProgress(true);
+      setStatus("");
+    }, "image/jpeg");
+  };
+
+  const handleUploadConfirmed = () => {
+    if (!capturedBlob) return;
 
     const formData = new FormData();
-    formData.append("photo", photoBlob, `photo_${Date.now()}.jpg`);
+    formData.append("photo", capturedBlob, "snapshot.jpg");
 
-    const token = new URLSearchParams(window.location.search).get("t");
-    if (token) formData.append("token", token);
-
-    setIsUploading(true);
+    setStatus("Uploading...");
 
     const xhr = new XMLHttpRequest();
-    xhr.upload.onprogress = event => {
-      if (event.lengthComputable) {
-        const percent = Math.round((event.loaded / event.total) * 100);
-        setUploadProgress(percent);
-      }
-    };
+    xhr.open("POST", "https://gallery.viecreatives.com/api/upload");
 
     xhr.onload = () => {
-      setIsUploading(false);
-      setUploadProgress(0);
-      setShowConfirmation(true);
-      setTimeout(() => setShowConfirmation(false), 2000);
+      if (xhr.status === 200) {
+        sessionStorage.setItem("hasUploaded", "true");
+        setHasUploaded(true);
+        setPreviewMode(false);
+        setCapturedBlob(null);
+        setStatus("Thanks for your photo! 💫");
+      } else {
+        setStatus("Upload failed. Please try again.");
+      }
     };
 
     xhr.onerror = () => {
-      console.error("Upload failed");
-      setIsUploading(false);
-      setUploadProgress(0);
+      setStatus("Upload error. Please check your connection.");
     };
 
-xhr.open("POST", "https://gallery.viecreatives.com/api/upload");
     xhr.send(formData);
   };
 
   return (
-    <div className="photo-booth flex flex-col min-h-screen justify-between text-center py-6 px-4">
-      {showConfirmation && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-4 py-2 rounded shadow-lg transition-all duration-500 z-50">
-          📸 Photo uploaded!
+    <div className="relative min-h-screen bg-gray-50 flex flex-col items-center justify-center px-6 py-10 space-y-6 text-center">
+
+      {showWelcome && (
+        <div className="fixed top-4 inset-x-0 mx-auto w-fit z-50 bg-yellow-200 text-yellow-900 px-6 py-3 rounded shadow-md animate-fade-in">
+          <strong>Help us create memories today!</strong><br />
+          Take 20 of your best photos today 📸✨
         </div>
       )}
 
-      <div>
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          className="preview mx-auto rounded shadow-md w-full max-w-md"
-        />
-        <p className="text-sm text-gray-600 mt-2">
-          {20 - photos.length} photo{20 - photos.length !== 1 ? "s" : ""} left
-        </p>
-      </div>
+      <h1 className="text-3xl font-bold text-gray-800">Photo Booth</h1>
 
-      <div className="mt-4">
-        <div className="flex justify-center gap-4 flex-wrap">
-          <button
-            onClick={() =>
-              setCameraFacing(prev =>
-                prev === "user" ? "environment" : "user"
-              )
-            }
-            className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded"
-          >
-            Flip Camera
-          </button>
-          <button
-            onClick={handleUpload}
-            disabled={!cameraReady || isUploading || limitReached}
-            className={`px-4 py-2 rounded transition-all ${
-              isUploading
-                ? "animate-pulse bg-blue-400 cursor-wait"
-                : "bg-blue-600 hover:bg-blue-700"
-            } text-white`}
-          >
-            {isUploading ? "Uploading..." : "Take Photo"}
-          </button>
-        </div>
-
-        {isUploading && (
-          <div className="w-full max-w-sm mx-auto mt-2 bg-gray-200 h-2 rounded overflow-hidden">
-            <div
-              className="bg-blue-500 h-full transition-all"
-              style={{ width: `${uploadProgress}%` }}
-            ></div>
-          </div>
-        )}
-      </div>
-
-      <div className="gallery mt-6 grid grid-cols-4 gap-2">
-        {photos.map((p, index) => (
-          <img
-            key={index}
-            src={p.url}
-            alt={`upload-${index}`}
-            className="rounded shadow-sm object-cover w-full aspect-square transition-transform hover:scale-105"
+      {!hasUploaded && !previewMode && (
+        <>
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            className="w-full max-w-md rounded-lg shadow"
           />
-        ))}
-      </div>
+          <button
+            onClick={captureAndPreview}
+            className="mt-4 px-6 py-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 font-semibold"
+          >
+            Snap a Photo 📷
+          </button>
+        </>
+      )}
+
+      {previewMode && capturedBlob && (
+        <div className="flex flex-col items-center space-y-4">
+          <img
+            src={URL.createObjectURL(capturedBlob)}
+            alt="Preview"
+            className="w-full max-w-xs rounded shadow"
+          />
+
+          {previewProgress && (
+            <div className="relative w-full max-w-xs h-2 bg-gray-200 rounded overflow-hidden">
+              <div className="absolute left-0 top-0 h-full bg-yellow-400 animate-bar" />
+            </div>
+          )}
+
+          <div className="flex gap-4 mt-3">
+            <button
+              onClick={() => {
+                setPreviewMode(false);
+                setCapturedBlob(null);
+                setPreviewProgress(false);
+                setStatus("");
+              }}
+              className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+            >
+              Retake 🔄
+            </button>
+            <button
+              onClick={handleUploadConfirmed}
+              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+            >
+              Upload ✅
+            </button>
+          </div>
+        </div>
+      )}
+
+      {hasUploaded && (
+        <div className="text-green-600 font-medium text-lg mt-6">
+          ✅ You've already taken your photo this session. Thanks!
+        </div>
+      )}
+
+      {status && <p className="text-sm text-gray-600 mt-2">{status}</p>}
+
+      <canvas ref={canvasRef} className="hidden" />
     </div>
   );
 }

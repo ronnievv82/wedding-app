@@ -4,8 +4,16 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
-  theme: {
-    extend: {},
+theme: {
+  extend: {
+    animation: {
+      bar: 'drain 15s linear forwards',
+    },
+    keyframes: {
+      drain: {
+        from: { width: '100%' },
+        to: { width: '0%' },
+      },
+    },
   },
-  plugins: [],
 };
