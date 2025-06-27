@@ -5,7 +5,7 @@ function Gallery() {
 
   const fetchPhotos = async () => {
     try {
-      const res = await fetch("https://ronnievv.duckdns.org:3001/gallery/");
+      const res = await fetch("https://gallery.viecreatives.com/api/gallery");
       const html = await res.text();
       const matches = [...html.matchAll(/href="(photo_\d+\.jpg)"/g)];
       const files = matches.map(match => match[1]);
