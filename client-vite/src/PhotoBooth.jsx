@@ -155,13 +155,14 @@ function PhotoBooth() {
         )}
       </div>
 
-      <div className="gallery mt-6 grid grid-cols-3 gap-2">
+	<div className="gallery mt-6 grid grid-cols-4 gap-2">      
+	<div className="gallery mt-6 grid grid-cols-3 gap-2">
         {photos.map((p, index) => (
           <img
             key={index}
             src={p.url}
             alt={`upload-${index}`}
-            className="rounded shadow-sm"
+            className="rounded shadow-sm object-cover w-full h-24"
           />
         ))}
       </div>

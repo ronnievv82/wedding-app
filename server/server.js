@@ -12,6 +12,17 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+const storage = multer.diskStorage({
+  destination: "uploads/",
+  filename: (req, file, cb) => {
+    const ext = ".jpg";
+    const name = `photo_${Date.now()}${ext}`;
+    cb(null, name);
+  },
+});
+
+const upload = multer({ storage });
+
 
 
 const path = require("path");
@@ -32,7 +43,7 @@ app.get("/", (req, res) => {
 });
 
 // Upload endpoint
-app.post("/api/upload", upload.single("photo"), (req, res) => {
+app.post("/uploads", upload.single("photo"), (req, res) => {
   console.log("� Received upload:", req.file.originalname);
   res.status(200).json({ message: "Upload successful!" });
 });
