@@ -15,7 +15,7 @@ function PhotoBooth() {
     return isMobile ? "environment" : "user";
   });
 
-  // Welcome message timeout
+  // ✨ Welcome message display
   useEffect(() => {
     if (showWelcome) {
       const timer = setTimeout(() => {
@@ -26,36 +26,34 @@ function PhotoBooth() {
     }
   }, [showWelcome]);
 
-  // Handle camera access
+  // 🎥 Initialize or restart camera
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode }
+      });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch (err) {
+      console.error("Camera error:", err);
+      setStatus("Unable to access camera");
+    }
+  };
+
   useEffect(() => {
     const uploaded = sessionStorage.getItem("hasUploaded");
     if (uploaded === "true") setHasUploaded(true);
-
-    const initCamera = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode }
-        });
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-      } catch (err) {
-        console.error("Camera access error:", err);
-        setStatus("Unable to access camera");
-      }
-    };
-
-    initCamera();
+    startCamera();
 
     return () => {
-      // Stop camera when switching
       if (videoRef.current?.srcObject) {
         videoRef.current.srcObject.getTracks().forEach((track) => track.stop());
       }
     };
   }, [facingMode]);
 
-  // Preview timeout
+  // ⏱️ Auto-dismiss preview
   useEffect(() => {
     if (previewMode && capturedBlob) {
       setPreviewProgress(true);
@@ -64,6 +62,7 @@ function PhotoBooth() {
         setCapturedBlob(null);
         setPreviewProgress(false);
         setStatus("Preview timed out — try again!");
+        startCamera();
       }, 15000);
       return () => clearTimeout(timeout);
     }
@@ -82,7 +81,6 @@ function PhotoBooth() {
     canvas.toBlob((blob) => {
       setCapturedBlob(blob);
       setPreviewMode(true);
-      setPreviewProgress(true);
       setStatus("");
     }, "image/jpeg");
   };
@@ -125,13 +123,15 @@ function PhotoBooth() {
     <div className="relative min-h-screen bg-gray-50 flex flex-col items-center justify-center px-6 py-10 space-y-6 text-center">
 
       {showWelcome && (
-        <div className="fixed top-6 inset-x-0 mx-auto w-fit z-50 bg-yellow-300 text-yellow-900 text-lg sm:text-xl font-semibold px-6 py-4 rounded shadow-lg animate-fade-in">
+        <div className="fixed top-6 inset-x-0 mx-auto w-fit z-50 bg-yellow-600 bg-opacity-95 text-white text-xl sm:text-2xl font-semibold px-6 py-4 rounded-lg shadow-lg animate-fade-in">
           📸 Help us create memories today!<br />
           Take <strong>20 of your best photos</strong> and make it unforgettable ✨
         </div>
       )}
 
-      <h1 className="text-3xl font-bold text-gray-800">Photo Booth</h1>
+      <h1 className="text-xl sm:text-2xl font-medium text-gray-500 tracking-wide uppercase">
+        Snead Wedding
+      </h1>
 
       {!hasUploaded && !previewMode && (
         <>
@@ -141,8 +141,7 @@ function PhotoBooth() {
             playsInline
             className="w-full max-w-md rounded-lg shadow"
           />
-
-          <div className="flex gap-4 mt-4">
+          <div className="flex flex-wrap justify-center gap-4 mt-4">
             <button
               onClick={captureAndPreview}
               className="px-6 py-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 font-semibold"
@@ -180,32 +179,5 @@ function PhotoBooth() {
                 setCapturedBlob(null);
                 setPreviewProgress(false);
                 setStatus("");
+                startCamera();
               }}
-              className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
-            >
-              Retake 🔄
-            </button>
-            <button
-              onClick={handleUploadConfirmed}
-              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-            >
-              Upload ✅
-            </button>
-          </div>
-        </div>
-      )}
-
-      {hasUploaded && (
-        <div className="text-green-600 font-medium text-lg mt-6">
-          ✅ You've already taken your photo this session. Thanks!
-        </div>
-      )}
-
-      {status && <p className="text-sm text-gray-600 mt-2">{status}</p>}
-
-      <canvas ref={canvasRef} className="hidden" />
-    </div>
-  );
-}
-
-export default PhotoBooth;
