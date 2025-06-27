@@ -8,7 +8,9 @@ const app = express();
 const PORT = 3001;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: "https://ronnievv.netlify.app"
+}));
 app.use(express.json());
 
 // Serve static photos from the uploads folder
