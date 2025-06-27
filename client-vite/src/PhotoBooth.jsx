@@ -4,7 +4,10 @@ function PhotoBooth() {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
 
-  const [hasUploaded, setHasUploaded] = useState(false);
+  const [photoCount, setPhotoCount] = useState(() =>
+    parseInt(sessionStorage.getItem("photoCount") || "0")
+  );
+  const [hasUploaded, setHasUploaded] = useState(photoCount >= 20);
   const [showWelcome, setShowWelcome] = useState(() => !sessionStorage.getItem("welcomeShown"));
   const [status, setStatus] = useState("");
   const [previewMode, setPreviewMode] = useState(false);
@@ -15,7 +18,6 @@ function PhotoBooth() {
     return isMobile ? "environment" : "user";
   });
 
-  // ✨ Welcome message display
   useEffect(() => {
     if (showWelcome) {
       const timer = setTimeout(() => {
@@ -26,7 +28,6 @@ function PhotoBooth() {
     }
   }, [showWelcome]);
 
-  // 🎥 Initialize or restart camera
   const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -42,10 +43,7 @@ function PhotoBooth() {
   };
 
   useEffect(() => {
-    const uploaded = sessionStorage.getItem("hasUploaded");
-    if (uploaded === "true") setHasUploaded(true);
     startCamera();
-
     return () => {
       if (videoRef.current?.srcObject) {
         videoRef.current.srcObject.getTracks().forEach((track) => track.stop());
@@ -53,7 +51,6 @@ function PhotoBooth() {
     };
   }, [facingMode]);
 
-  // ⏱️ Auto-dismiss preview
   useEffect(() => {
     if (previewMode && capturedBlob) {
       setPreviewProgress(true);
@@ -98,11 +95,16 @@ function PhotoBooth() {
 
     xhr.onload = () => {
       if (xhr.status === 200) {
-        sessionStorage.setItem("hasUploaded", "true");
-        setHasUploaded(true);
-        setPreviewMode(false);
+        const updatedCount = photoCount + 1;
+        sessionStorage.setItem("photoCount", updatedCount);
+        setPhotoCount(updatedCount);
         setCapturedBlob(null);
-        setStatus("Thanks for your photo! 💫");
+        setPreviewMode(false);
+        setStatus(`Photo ${updatedCount}/20 uploaded!`);
+
+        if (updatedCount >= 20) {
+          setHasUploaded(true);
+        }
       } else {
         setStatus("Upload failed. Please try again.");
       }
@@ -129,9 +131,16 @@ function PhotoBooth() {
         </div>
       )}
 
-<h1 className="text-xs sm:text-sm font-light text-gray-400 tracking-widest uppercase">
-  Snead Wedding
-</h1>
+      <h1 className="text-xs sm:text-sm font-light text-gray-400 tracking-widest uppercase">
+        Snead Wedding
+      </h1>
+
+      {!hasUploaded && (
+        <div className="text-sm text-gray-600 font-medium mt-1">
+          You have <span className="font-bold">{20 - photoCount}</span> photo{20 - photoCount !== 1 && "s"} left 🎞️
+        </div>
+      )}
+
       {!hasUploaded && !previewMode && (
         <>
           <video
@@ -196,9 +205,20 @@ function PhotoBooth() {
 
       {hasUploaded && (
         <div className="text-green-600 font-medium text-lg mt-6">
-          ✅ You've already taken your photo this session. Thanks!
+          ✅ You've reached the memory limit for this session.<br />
+          Thanks for contributing!
         </div>
       )}
+
+      {/* BONUS: Progress Bar showing % used */}
+      <div className="w-full max-w-xs mt-4">
+        <div className="bg-gray-200 h-2 rounded-full overflow-hidden">
+          <div
+            className="bg-green-500 h-2 rounded-full transition-all duration-500 ease-in-out"
+            style={{ width: `${(photoCount / 20) * 100}%` }}
+          />
+        </div>
+      </div>
 
       {status && <p className="text-sm text-gray-600 mt-2">{status}</p>}
 
