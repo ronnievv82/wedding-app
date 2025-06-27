@@ -35,6 +35,11 @@ app.post("/api/upload", upload.single("photo"), (req, res) => {
 });
 
 // 🖼️ Gallery route: return list of .jpg files
+app.get("/", (req, res) => {
+  res.send("🎉 The gallery backend is live and ready!");
+});
+
+
 app.get("/api/gallery", (req, res) => {
   const folder = path.join(__dirname, "uploads");
   fs.readdir(folder, (err, files) => {

@@ -35,7 +35,7 @@ function Gallery() {
           {photoList.map((filename, index) => (
             <img
               key={index}
-              src={`https://viecreatives.com/gallery/${filename}`}
+              src={`https://gallery.viecreatives.com/gallery/${filename}`}
               alt={`photo-${index}`}
               className="rounded shadow-sm object-cover w-full aspect-square transition-transform hover:scale-105"
             />
