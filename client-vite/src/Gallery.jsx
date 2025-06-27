@@ -25,7 +25,7 @@ function Gallery() {
   return (
     <div className="min-h-screen bg-white px-4 py-6">
       <h1 className="text-3xl font-semibold text-center mb-6 text-gray-800">
-        Wedding Memories 📸
+        Snead Wedding Memories 📸
       </h1>
 
       {photoList.length === 0 ? (
