@@ -115,7 +115,6 @@ function PhotoBooth() {
           muted
           className="preview mx-auto rounded shadow-md w-full max-w-md"
         />
-
         <p className="text-sm text-gray-600 mt-2">
           {20 - photos.length} photo{20 - photos.length !== 1 ? "s" : ""} left
         </p>
@@ -125,13 +124,14 @@ function PhotoBooth() {
         <div className="flex justify-center gap-4 flex-wrap">
           <button
             onClick={() =>
-              setCameraFacing(prev => (prev === "user" ? "environment" : "user"))
+              setCameraFacing(prev =>
+                prev === "user" ? "environment" : "user"
+              )
             }
             className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded"
           >
             Flip Camera
           </button>
-
           <button
             onClick={handleUpload}
             disabled={!cameraReady || isUploading || limitReached}
@@ -155,14 +155,13 @@ function PhotoBooth() {
         )}
       </div>
 
-	<div className="gallery mt-6 grid grid-cols-4 gap-2">      
-	<div className="gallery mt-6 grid grid-cols-3 gap-2">
+      <div className="gallery mt-6 grid grid-cols-4 gap-2">
         {photos.map((p, index) => (
           <img
             key={index}
             src={p.url}
             alt={`upload-${index}`}
-            className="rounded shadow-sm object-cover w-full h-24"
+            className="rounded shadow-sm object-cover w-full aspect-square transition-transform hover:scale-105"
           />
         ))}
       </div>
