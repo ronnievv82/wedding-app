@@ -16,6 +16,23 @@ function Gallery() {
     }
   };
 
+const fs = require("fs");
+const path = require("path");
+
+app.get("/api/gallery", (req, res) => {
+  const dir = path.join(__dirname, "uploads");
+  fs.readdir(dir, (err, files) => {
+    if (err) return res.status(500).send("Error reading gallery");
+    const jpgs = files.filter(f => f.endsWith(".jpg"));
+    res.json(jpgs.sort().reverse());
+  });
+});
+
+const res = await fetch("https://ronnievv.duckdns.org:3001/api/gallery");
+const files = await res.json();
+setPhotoList(files);
+
+
   useEffect(() => {
     fetchPhotos();
     const interval = setInterval(fetchPhotos, 10000); // refresh every 10 sec

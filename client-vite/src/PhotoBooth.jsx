@@ -107,14 +107,13 @@ function PhotoBooth() {
         </div>
       )}
 
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        muted
-        className="preview mx-auto rounded shadow-md"
-      />
-
+<video
+  ref={videoRef}
+  autoPlay
+  playsInline
+  muted
+  className="preview mx-auto rounded shadow-md w-full max-w-md"
+/>
       <div className="flex justify-center gap-4 mt-4 flex-wrap">
         <button
           onClick={() =>
