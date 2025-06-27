@@ -95,7 +95,8 @@ function PhotoBooth() {
       setUploadProgress(0);
     };
 
-    xhr.open("POST", "https://ronnievv.duckdns.org:3001/api/upload");
+xhr.open("POST", "http://192.168.1.132:3001/api/upload");    
+//xhr.open("POST", "https://ronnievv.duckdns.org:3001/api/upload");
     xhr.send(formData);
   };
 
