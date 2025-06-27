@@ -129,10 +129,9 @@ function PhotoBooth() {
         </div>
       )}
 
-<h1 className="text-sm sm:text-base font-light text-gray-500 tracking-wide uppercase">
+<h1 className="text-xs sm:text-sm font-light text-gray-400 tracking-widest uppercase">
   Snead Wedding
 </h1>
-
       {!hasUploaded && !previewMode && (
         <>
           <video
