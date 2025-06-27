@@ -129,9 +129,9 @@ function PhotoBooth() {
         </div>
       )}
 
-      <h1 className="text-xl sm:text-2xl font-medium text-gray-500 tracking-wide uppercase">
-        Snead Wedding
-      </h1>
+<h1 className="text-sm sm:text-base font-light text-gray-500 tracking-wide uppercase">
+  Snead Wedding
+</h1>
 
       {!hasUploaded && !previewMode && (
         <>
