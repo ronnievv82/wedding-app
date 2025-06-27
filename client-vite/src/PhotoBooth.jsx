@@ -75,7 +75,7 @@ function PhotoBooth() {
     setIsUploading(true);
 
     const xhr = new XMLHttpRequest();
-    xhr.upload.onprogress = (event) => {
+    xhr.upload.onprogress = event => {
       if (event.lengthComputable) {
         const percent = Math.round((event.loaded / event.total) * 100);
         setUploadProgress(percent);
@@ -100,57 +100,62 @@ function PhotoBooth() {
   };
 
   return (
-    <div className="photo-booth text-center py-6 px-4">
+    <div className="photo-booth flex flex-col min-h-screen justify-between text-center py-6 px-4">
       {showConfirmation && (
         <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-4 py-2 rounded shadow-lg transition-all duration-500 z-50">
           📸 Photo uploaded!
         </div>
       )}
 
-<video
-  ref={videoRef}
-  autoPlay
-  playsInline
-  muted
-  className="preview mx-auto rounded shadow-md w-full max-w-md"
-/>
-      <div className="flex justify-center gap-4 mt-4 flex-wrap">
-        <button
-          onClick={() =>
-            setCameraFacing(prev => (prev === "user" ? "environment" : "user"))
-          }
-          className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded"
-        >
-          Flip Camera
-        </button>
+      <div>
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className="preview mx-auto rounded shadow-md w-full max-w-md"
+        />
 
-        <button
-          onClick={handleUpload}
-          disabled={!cameraReady || isUploading || limitReached}
-          className={`px-4 py-2 rounded transition-all ${
-            isUploading
-              ? "animate-pulse bg-blue-400 cursor-wait"
-              : "bg-blue-600 hover:bg-blue-700"
-          } text-white`}
-        >
-          {isUploading ? "Uploading..." : "Take Photo"}
-        </button>
+        <p className="text-sm text-gray-600 mt-2">
+          {20 - photos.length} photo{20 - photos.length !== 1 ? "s" : ""} left
+        </p>
       </div>
 
-      {isUploading && (
-        <div className="w-full max-w-sm mx-auto mt-2 bg-gray-200 h-2 rounded overflow-hidden">
-          <div
-            className="bg-blue-500 h-full transition-all"
-            style={{ width: `${uploadProgress}%` }}
-          ></div>
+      <div className="mt-4">
+        <div className="flex justify-center gap-4 flex-wrap">
+          <button
+            onClick={() =>
+              setCameraFacing(prev => (prev === "user" ? "environment" : "user"))
+            }
+            className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded"
+          >
+            Flip Camera
+          </button>
+
+          <button
+            onClick={handleUpload}
+            disabled={!cameraReady || isUploading || limitReached}
+            className={`px-4 py-2 rounded transition-all ${
+              isUploading
+                ? "animate-pulse bg-blue-400 cursor-wait"
+                : "bg-blue-600 hover:bg-blue-700"
+            } text-white`}
+          >
+            {isUploading ? "Uploading..." : "Take Photo"}
+          </button>
         </div>
-      )}
 
-      <p className="text-sm text-gray-600 mt-2">
-        {20 - photos.length} photo{20 - photos.length !== 1 ? "s" : ""} left
-      </p>
+        {isUploading && (
+          <div className="w-full max-w-sm mx-auto mt-2 bg-gray-200 h-2 rounded overflow-hidden">
+            <div
+              className="bg-blue-500 h-full transition-all"
+              style={{ width: `${uploadProgress}%` }}
+            ></div>
+          </div>
+        )}
+      </div>
 
-      <div className="gallery mt-4 grid grid-cols-3 gap-2">
+      <div className="gallery mt-6 grid grid-cols-3 gap-2">
         {photos.map((p, index) => (
           <img
             key={index}
