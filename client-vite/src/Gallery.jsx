@@ -3,58 +3,41 @@ import React, { useEffect, useState } from "react";
 function Gallery() {
   const [photoList, setPhotoList] = useState([]);
 
+  // Fetch photos from the server
   const fetchPhotos = async () => {
     try {
-      const res = await fetch("https://gallery.viecreatives.com/api/gallery");
-      const html = await res.text();
-      const matches = [...html.matchAll(/href="(photo_\d+\.jpg)"/g)];
-      const files = matches.map(match => match[1]);
-      const sorted = files.sort((a, b) => b.localeCompare(a)); // Newest first
-      setPhotoList(sorted);
+      const res = await fetch("https://viecreatives.com/api/gallery");
+      const files = await res.json();
+      setPhotoList(files);
     } catch (error) {
-      console.error("Gallery fetch error:", error);
+      console.error("Error fetching gallery:", error);
     }
   };
 
-const fs = require("fs");
-const path = require("path");
-
-app.get("/api/gallery", (req, res) => {
-  const dir = path.join(__dirname, "uploads");
-  fs.readdir(dir, (err, files) => {
-    if (err) return res.status(500).send("Error reading gallery");
-    const jpgs = files.filter(f => f.endsWith(".jpg"));
-    res.json(jpgs.sort().reverse());
-  });
-});
-
-const res = await fetch("https://ronnievv.duckdns.org:3001/api/gallery");
-const files = await res.json();
-setPhotoList(files);
-
-
   useEffect(() => {
     fetchPhotos();
-    const interval = setInterval(fetchPhotos, 10000); // refresh every 10 sec
+
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(fetchPhotos, 30000);
     return () => clearInterval(interval);
   }, []);
 
   return (
-    <div className="p-4 max-w-5xl mx-auto">
-      <h1 className="text-2xl font-semibold text-center mb-6">
+    <div className="min-h-screen bg-white px-4 py-6">
+      <h1 className="text-3xl font-semibold text-center mb-6 text-gray-800">
         Wedding Memories 📸
       </h1>
 
       {photoList.length === 0 ? (
-        <p className="text-center text-gray-500">No photos yet—stay tuned!</p>
+        <p className="text-center text-gray-500">No photos yet, but the magic is coming...</p>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
           {photoList.map((filename, index) => (
             <img
               key={index}
-              src={`https://ronnievv.duckdns.org:3001/gallery/${filename}`}
-              alt={`Wedding memory ${index + 1}`}
-              className="rounded shadow-md hover:scale-105 transition-transform"
+              src={`https://viecreatives.com/gallery/${filename}`}
+              alt={`photo-${index}`}
+              className="rounded shadow-sm object-cover w-full aspect-square transition-transform hover:scale-105"
             />
           ))}
         </div>
