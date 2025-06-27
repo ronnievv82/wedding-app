@@ -181,3 +181,31 @@ function PhotoBooth() {
                 setStatus("");
                 startCamera();
               }}
+              className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+            >
+              Retake 🔄
+            </button>
+            <button
+              onClick={handleUploadConfirmed}
+              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+            >
+              Upload ✅
+            </button>
+          </div>
+        </div>
+      )}
+
+      {hasUploaded && (
+        <div className="text-green-600 font-medium text-lg mt-6">
+          ✅ You've already taken your photo this session. Thanks!
+        </div>
+      )}
+
+      {status && <p className="text-sm text-gray-600 mt-2">{status}</p>}
+
+      <canvas ref={canvasRef} className="hidden" />
+    </div>
+  );
+}
+
+export default PhotoBooth;
