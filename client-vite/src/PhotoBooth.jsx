@@ -4,18 +4,18 @@ function PhotoBooth() {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
 
-const [countdown, setCountdown] = useState(3);
-const [countdownActive, setCountdownActive] = useState(false);
-
   const [photoCount, setPhotoCount] = useState(() =>
     parseInt(sessionStorage.getItem("photoCount") || "0")
   );
   const [hasUploaded, setHasUploaded] = useState(photoCount >= 20);
-  const [showWelcome, setShowWelcome] = useState(() => !sessionStorage.getItem("welcomeShown"));
+  const [showWelcome, setShowWelcome] = useState(() =>
+    !sessionStorage.getItem("welcomeShown")
+  );
   const [status, setStatus] = useState("");
   const [previewMode, setPreviewMode] = useState(false);
   const [capturedBlob, setCapturedBlob] = useState(null);
-  const [previewProgress, setPreviewProgress] = useState(false);
+  const [countdown, setCountdown] = useState(3);
+  const [countdownActive, setCountdownActive] = useState(false);
   const [facingMode, setFacingMode] = useState(() => {
     const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
     return isMobile ? "environment" : "user";
@@ -34,7 +34,7 @@ const [countdownActive, setCountdownActive] = useState(false);
   const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode }
+        video: { facingMode },
       });
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -55,18 +55,17 @@ const [countdownActive, setCountdownActive] = useState(false);
   }, [facingMode]);
 
   useEffect(() => {
-    if (previewMode && capturedBlob) {
-      setPreviewProgress(true);
-      const timeout = setTimeout(() => {
-        setPreviewMode(false);
-        setCapturedBlob(null);
-        setPreviewProgress(false);
-        setStatus("Preview timed out — try again!");
-        startCamera();
-      }, 15000);
-      return () => clearTimeout(timeout);
+    if (!countdownActive || !previewMode) return;
+    if (countdown === 0) {
+      handleUploadConfirmed();
+      setCountdownActive(false);
+      return;
     }
-  }, [previewMode, capturedBlob]);
+    const timer = setTimeout(() => {
+      setCountdown((prev) => prev - 1);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [countdown, countdownActive, previewMode]);
 
   const captureAndPreview = () => {
     const video = videoRef.current;
@@ -79,39 +78,19 @@ const [countdownActive, setCountdownActive] = useState(false);
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     canvas.toBlob((blob) => {
-setCapturedBlob(blob);
-setPreviewMode(true);
-setCountdown(3);
-setCountdownActive(true);
-setStatus("");
+      setCapturedBlob(blob);
+      setPreviewMode(true);
+      setCountdown(3);
+      setCountdownActive(true);
+      setStatus("");
     }, "image/jpeg");
   };
-
-useEffect(() => {
-  if (!countdownActive) return;
-
-  if (countdown === 0) {
-    handleUploadConfirmed();
-    setCountdownActive(false);
-    return;
-  }
-
-  const timer = setTimeout(() => {
-    setCountdown((prev) => prev - 1);
-  }, 1000);
-
-  return () => clearTimeout(timer);
-}, [countdown, countdownActive]);
-
-
-
 
   const handleUploadConfirmed = () => {
     if (!capturedBlob) return;
 
     const formData = new FormData();
     formData.append("photo", capturedBlob, "snapshot.jpg");
-
     setStatus("Uploading...");
 
     const xhr = new XMLHttpRequest();
@@ -124,10 +103,13 @@ useEffect(() => {
         setPhotoCount(updatedCount);
         setCapturedBlob(null);
         setPreviewMode(false);
+        setCountdownActive(false);
         setStatus(`Photo ${updatedCount}/20 uploaded!`);
 
         if (updatedCount >= 20) {
           setHasUploaded(true);
+        } else {
+          startCamera();
         }
       } else {
         setStatus("Upload failed. Please try again.");
@@ -198,19 +180,21 @@ useEffect(() => {
             className="w-full max-w-xs rounded shadow"
           />
 
-          {previewProgress && (
-            <div className="relative w-full max-w-xs h-2 bg-gray-200 rounded overflow-hidden mt-2">
-              <div className="absolute left-0 top-0 h-full bg-yellow-400 animate-bar" />
-            </div>
-          )}
+          <div className="text-sm text-gray-500 animate-pulse">
+            {countdownActive && `Uploading in ${countdown}...`}
+          </div>
+
+          <div className="relative w-full max-w-xs h-2 bg-gray-200 rounded overflow-hidden mt-2">
+            <div className="absolute left-0 top-0 h-full bg-yellow-400 animate-bar" />
+          </div>
 
           <div className="flex gap-4 mt-3">
             <button
               onClick={() => {
                 setPreviewMode(false);
                 setCapturedBlob(null);
-                setPreviewProgress(false);
                 setStatus("");
+                setCountdownActive(false);
                 startCamera();
               }}
               className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
@@ -218,15 +202,9 @@ useEffect(() => {
               Retake 🔄
             </button>
             <button
-onClick={() => {
-  setPreviewMode(false);
-  setCapturedBlob(null);
-  setPreviewProgress(false);
-  setStatus("");
-  setCountdownActive(false);
-  startCamera();
-}}
-           >
+              onClick={handleUploadConfirmed}
+              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+            >
               Upload ✅
             </button>
           </div>
@@ -240,7 +218,6 @@ onClick={() => {
         </div>
       )}
 
-      {/* BONUS: Progress Bar showing % used */}
       <div className="w-full max-w-xs mt-4">
         <div className="bg-gray-200 h-2 rounded-full overflow-hidden">
           <div
@@ -251,16 +228,10 @@ onClick={() => {
       </div>
 
       {status && <p className="text-sm text-gray-600 mt-2">{status}</p>}
-
       <canvas ref={canvasRef} className="hidden" />
     </div>
   );
 }
-{countdownActive && (
-  <div className="text-sm text-gray-500 animate-pulse">
-    Uploading in {countdown}...
-  </div>
-)}
-
 
 export default PhotoBooth;
+
