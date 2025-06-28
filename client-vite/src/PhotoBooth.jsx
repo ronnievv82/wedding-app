@@ -4,6 +4,9 @@ function PhotoBooth() {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
 
+const [countdown, setCountdown] = useState(3);
+const [countdownActive, setCountdownActive] = useState(false);
+
   const [photoCount, setPhotoCount] = useState(() =>
     parseInt(sessionStorage.getItem("photoCount") || "0")
   );
@@ -76,11 +79,32 @@ function PhotoBooth() {
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     canvas.toBlob((blob) => {
-      setCapturedBlob(blob);
-      setPreviewMode(true);
-      setStatus("");
+setCapturedBlob(blob);
+setPreviewMode(true);
+setCountdown(3);
+setCountdownActive(true);
+setStatus("");
     }, "image/jpeg");
   };
+
+useEffect(() => {
+  if (!countdownActive) return;
+
+  if (countdown === 0) {
+    handleUploadConfirmed();
+    setCountdownActive(false);
+    return;
+  }
+
+  const timer = setTimeout(() => {
+    setCountdown((prev) => prev - 1);
+  }, 1000);
+
+  return () => clearTimeout(timer);
+}, [countdown, countdownActive]);
+
+
+
 
   const handleUploadConfirmed = () => {
     if (!capturedBlob) return;
@@ -194,9 +218,15 @@ function PhotoBooth() {
               Retake 🔄
             </button>
             <button
-              onClick={handleUploadConfirmed}
-              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-            >
+onClick={() => {
+  setPreviewMode(false);
+  setCapturedBlob(null);
+  setPreviewProgress(false);
+  setStatus("");
+  setCountdownActive(false);
+  startCamera();
+}}
+           >
               Upload ✅
             </button>
           </div>
@@ -226,5 +256,11 @@ function PhotoBooth() {
     </div>
   );
 }
+{countdownActive && (
+  <div className="text-sm text-gray-500 animate-pulse">
+    Uploading in {countdown}...
+  </div>
+)}
+
 
 export default PhotoBooth;
