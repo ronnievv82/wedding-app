@@ -7,7 +7,7 @@ function Gallery() {
   useEffect(() => {
     async function fetchPhotos() {
       try {
-        const res = await fetch("https://gallery.viecreatives.com/api/photos");
+        const res = await fetch("https://gallery.viecreatives.com/api/gallery");
         const data = await res.json();
         setPhotos(data);
       } catch (err) {
