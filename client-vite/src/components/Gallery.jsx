@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import ModalImage from "react-modal-image";
+const BASE_URL = "https://gallery.viecreatives.com/uploads";
+
 
 function Gallery() {
   const [photos, setPhotos] = useState([]);
@@ -25,6 +27,23 @@ function Gallery() {
       <h1 className="text-2xl sm:text-3xl font-semibold text-gray-800 mb-6 text-center">
         📸 Wedding Memories
       </h1>
+
+
+{photos.map((filename, index) => (
+  <div key={index} className="rounded shadow-sm hover:shadow-md transition">
+    <ModalImage
+      small={`${BASE_URL}/${filename}`}
+      large={`${BASE_URL}/${filename}`}
+      alt={`Photo ${index + 1}`}
+      hideDownload={false}
+      imageBackgroundColor="#fff"
+      className="rounded"
+    />
+  </div>
+))}
+
+
+
 
       {photos.length === 0 ? (
         <p className="text-center text-gray-500">Loading photos...</p>
