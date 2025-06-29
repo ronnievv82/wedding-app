@@ -7,12 +7,17 @@ const cors = require("cors");
 const app = express();
 const PORT = 3001;
 
+
+
 // 🔓 Enable CORS for all origins
 app.use(cors());
 app.use(express.json());
 
 // 📂 Serve static files from /uploads via /gallery route
-app.use("/gallery", express.static(path.join(__dirname, "uploads")));
+//app.use("/gallery", express.static(path.join(__dirname, "uploads")));
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+
 
 // 📷 Configure multer to save as .jpg files
 const storage = multer.diskStorage({

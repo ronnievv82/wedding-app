@@ -48,7 +48,7 @@ function Gallery() {
       {photos.length === 0 ? (
         <p className="text-center text-gray-500">Loading photos...</p>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {photos.map((photoUrl, index) => (
             <div key={index} className="rounded shadow-sm hover:shadow-md transition">
               <ModalImage
