@@ -26,7 +26,7 @@ function PhotoBooth() {
       const timer = setTimeout(() => {
         sessionStorage.setItem("welcomeShown", "true");
         setShowWelcome(false);
-      }, 5000);
+      }, 35000);
       return () => clearTimeout(timer);
     }
   }, [showWelcome]);
