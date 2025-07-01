@@ -29,7 +29,7 @@ function PhotoBooth() {
       const timer = setTimeout(() => {
         sessionStorage.setItem("welcomeShown", "true");
         setShowWelcome(false);
-      }, 35000);
+      }, 25000);
       return () => clearTimeout(timer);
     }
   }, [showWelcome]);
